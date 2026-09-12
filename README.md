@@ -1,4 +1,41 @@
-# GloVe from first principles
+# Word embeddings from first principles
+
+## Skip-Gram / Word2Vec
+
+Open [skip_gram_exploration.ipynb](skip_gram_exploration.ipynb) for a 20-section
+teaching notebook with saved outputs. It derives full-softmax Skip-Gram and
+negative sampling, implements both with NumPy, checks their gradients, and explores
+context windows, embedding dimensions, cosine similarity, and PCA.
+
+The core needs only NumPy and Matplotlib, plus Jupyter to run the notebook.
+It does not require the GloVe tutorial's PyTorch dependencies. On Windows:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install numpy matplotlib nbformat nbclient ipykernel jupyterlab
+.\.venv\Scripts\python -m jupyterlab skip_gram_exploration.ipynb
+```
+
+On macOS/Linux use `.venv/bin/python` in place of `.\.venv\Scripts\python`.
+Select that environment's kernel, then **Restart Kernel and Run All Cells**.
+Defaults use nine sentences, seed 42, window 2, dimension 5, learning rate 0.05,
+300 epochs, and five negative samples. All data are embedded; no cell downloads
+data or installs packages. Gensim is an optional, disabled comparison in section 18.
+
+To reproduce the saved outputs in a fresh kernel:
+
+```powershell
+.\.venv\Scripts\python -X utf8 scripts/execute_notebook.py skip_gram_exploration.ipynb
+```
+
+The runner validates all 20 sections, executes every code cell, and exports plots
+to `artifacts/skip_gram_exploration/`. In-notebook checks cover hand-counted pairs,
+sentence boundaries, stable losses, both manual gradients (including repeated
+negative samples), finite training, and seed reproducibility. Semantic neighbors
+are observations, not pass/fail requirements. Edit this notebook directly;
+`scripts/build_notebook.py` authors only the GloVe notebook.
+
+## GloVe from first principles
 
 Open [glove_from_scratch.ipynb](glove_from_scratch.ipynb) for the complete 26-section
 tutorial. Saved outputs include worked calculations, labeled matrices, training
@@ -36,7 +73,7 @@ you supply a real text-format GloVe path.
 ```
 
 This starts a fresh kernel using that interpreter, executes every cell in order,
-checks notebook structure, saves outputs, and extracts plot PNGs to `artifacts/`
+checks notebook structure, saves outputs, and extracts plot PNGs to `artifacts/glove_from_scratch/`
 for visual inspection. Jupyter requires local kernel socket communication.
 The notebook's executable checks verify hand-counted windows, filtering distances,
 positive-count masking, NumPy/PyTorch loss agreement, a finite-difference gradient,

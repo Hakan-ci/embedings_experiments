@@ -1,5 +1,6 @@
 """Execute the notebook in a fresh local kernel and retain verifiable outputs."""
 from pathlib import Path
+import argparse
 import base64
 import os
 import re
@@ -18,17 +19,29 @@ import nbformat
 from nbclient import NotebookClient
 from jupyter_client import KernelManager
 
-path = ROOT / "glove_from_scratch.ipynb"
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("notebook", nargs="?", default="glove_from_scratch.ipynb",
+                    help="Notebook path, relative to the project root unless absolute")
+args = parser.parse_args()
+path = (ROOT / args.notebook).resolve()
+expected_sections = {"glove_from_scratch.ipynb": 26, "skip_gram_exploration.ipynb": 20}
+if path.name not in expected_sections:
+    parser.error("Choose glove_from_scratch.ipynb or skip_gram_exploration.ipynb")
 notebook = nbformat.read(path, as_version=4)
 nbformat.validate(notebook)
 headings = [int(match.group(1)) for cell in notebook.cells if cell.cell_type == "markdown"
-            for match in [re.match(r"## (\d+)\.", cell.source)] if match]
-assert headings == list(range(1, 27)), headings
+            for match in [re.match(r"#{1,2} (\d+)\.", cell.source)] if match]
+assert headings == list(range(1, expected_sections[path.name] + 1)), headings
+if path.name == "skip_gram_exploration.ipynb":
+    assert any("# Things I should be able to explain after completing this notebook" in cell.source
+               for cell in notebook.cells if cell.cell_type == "markdown")
 for index, cell in enumerate(notebook.cells):
     if cell.cell_type == "code":
         compile(cell.source, f"cell-{index}", "exec")
     if cell.cell_type == "markdown" and cell.source.startswith("**Knowledge check"):
         assert notebook.cells[index + 1].source.startswith("**Answer**")
+    if cell.cell_type == "markdown" and cell.source.startswith("**Think first:"):
+        assert "<details>" in cell.source and "</details>" in cell.source
 
 manager = KernelManager(kernel_name="python3")
 manager.kernel_spec.argv[0] = sys.executable
@@ -39,7 +52,7 @@ started = perf_counter()
 last_section = [0]
 
 def progress(cell, cell_index, **kwargs):
-    match = re.match(r"## (\d+)\.", cell.source)
+    match = re.match(r"#{1,2} (\d+)\.", cell.source)
     if match:
         last_section[0] = int(match.group(1))
         print(f"Section {last_section[0]}: {cell.source.splitlines()[0]}", flush=True)
@@ -54,8 +67,8 @@ finally:
 nbformat.validate(notebook)
 assert all(cell.execution_count is not None for cell in notebook.cells if cell.cell_type == "code")
 nbformat.write(notebook, path)
-artifacts = ROOT / "artifacts"
-artifacts.mkdir(exist_ok=True)
+artifacts = ROOT / "artifacts" / path.stem
+artifacts.mkdir(parents=True, exist_ok=True)
 plot_count = 0
 for cell in notebook.cells:
     for output in cell.get("outputs", []):
